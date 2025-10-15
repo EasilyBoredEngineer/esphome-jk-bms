@@ -2,7 +2,6 @@
 #include "esphome/core/log.h"
 
 #ifdef USE_ESP32
-#include <pgmspace.h>
 
 namespace esphome {
 namespace heltec_balancer_ble {
@@ -39,58 +38,47 @@ static constexpr uint8_t BUZZER_MODES_SIZE = 4;
 static constexpr uint8_t BATTERY_TYPES_SIZE = 5;
 static constexpr uint8_t CELL_ERRORS_SIZE = 8;
 
-// Use PROGMEM to store strings in flash instead of RAM
-static const char STATUS_UNKNOWN[] PROGMEM = "Unknown";
-static const char STATUS_WRONG_CELL[] PROGMEM = "Wrong cell count";
-static const char STATUS_ACQLINE_TEST[] PROGMEM = "AcqLine Res test";
-static const char STATUS_ACQLINE_EXCEED[] PROGMEM = "AcqLine Res exceed";
-static const char STATUS_SYSTEST[] PROGMEM = "Systest Completed";
-static const char STATUS_BALANCING[] PROGMEM = "Balancing";
-static const char STATUS_BAL_FINISHED[] PROGMEM = "Balancing finished";
-static const char STATUS_LOW_VOLT[] PROGMEM = "Low voltage";
-static const char STATUS_OVERTEMP[] PROGMEM = "System Overtemp";
-static const char STATUS_HOST_FAILS[] PROGMEM = "Host fails";
-static const char STATUS_LOW_BAT[] PROGMEM = "Low battery voltage - balancing stopped";
-static const char STATUS_TEMP_HIGH[] PROGMEM = "Temperature too high - balancing stopped";
-static const char STATUS_SELFTEST[] PROGMEM = "Self-test completed";
-
-static const char *const OPERATION_STATUS[] PROGMEM = {
-    STATUS_UNKNOWN, STATUS_WRONG_CELL, STATUS_ACQLINE_TEST, STATUS_ACQLINE_EXCEED,
-    STATUS_SYSTEST, STATUS_BALANCING, STATUS_BAL_FINISHED, STATUS_LOW_VOLT,
-    STATUS_OVERTEMP, STATUS_HOST_FAILS, STATUS_LOW_BAT, STATUS_TEMP_HIGH, STATUS_SELFTEST
+// Simple string arrays - no PROGMEM
+static const char *const OPERATION_STATUS[] = {
+    "Unknown",
+    "Wrong cell count",
+    "AcqLine Res test",
+    "AcqLine Res exceed",
+    "Systest Completed",
+    "Balancing",
+    "Balancing finished",
+    "Low voltage",
+    "System Overtemp",
+    "Host fails",
+    "Low battery voltage - balancing stopped",
+    "Temperature too high - balancing stopped",
+    "Self-test completed"
 };
 
-static const char BUZZ_UNKNOWN[] PROGMEM = "Unknown";
-static const char BUZZ_OFF[] PROGMEM = "Off";
-static const char BUZZ_ONCE[] PROGMEM = "Beep once";
-static const char BUZZ_REGULAR[] PROGMEM = "Beep regular";
-
-static const char *const BUZZER_MODES[] PROGMEM = {
-    BUZZ_UNKNOWN, BUZZ_OFF, BUZZ_ONCE, BUZZ_REGULAR
+static const char *const BUZZER_MODES[] = {
+    "Unknown",
+    "Off",
+    "Beep once",
+    "Beep regular"
 };
 
-static const char BATT_UNKNOWN[] PROGMEM = "Unknown";
-static const char BATT_NCM[] PROGMEM = "NCM";
-static const char BATT_LFP[] PROGMEM = "LFP";
-static const char BATT_LTO[] PROGMEM = "LTO";
-static const char BATT_PBAC[] PROGMEM = "PbAc";
-
-static const char *const BATTERY_TYPES[] PROGMEM = {
-    BATT_UNKNOWN, BATT_NCM, BATT_LFP, BATT_LTO, BATT_PBAC
+static const char *const BATTERY_TYPES[] = {
+    "Unknown",
+    "NCM",
+    "LFP",
+    "LTO",
+    "PbAc"
 };
 
-static const char ERR_DETECT_FAIL[] PROGMEM = "Battery detection failed";
-static const char ERR_OVERVOLT[] PROGMEM = "Overvoltage";
-static const char ERR_UNDERVOLT[] PROGMEM = "Undervoltage";
-static const char ERR_POLARITY[] PROGMEM = "Polarity error";
-static const char ERR_RESISTANCE[] PROGMEM = "Excessive line resistance";
-static const char ERR_OVERTEMP[] PROGMEM = "System overheating";
-static const char ERR_CHARGING[] PROGMEM = "Charging fault";
-static const char ERR_DISCHARGE[] PROGMEM = "Discharge fault";
-
-static const char *const CELL_ERRORS[] PROGMEM = {
-    ERR_DETECT_FAIL, ERR_OVERVOLT, ERR_UNDERVOLT, ERR_POLARITY,
-    ERR_RESISTANCE, ERR_OVERTEMP, ERR_CHARGING, ERR_DISCHARGE
+static const char *const CELL_ERRORS[] = {
+    "Battery detection failed",
+    "Overvoltage",
+    "Undervoltage",
+    "Polarity error",
+    "Excessive line resistance",
+    "System overheating",
+    "Charging fault",
+    "Discharge fault"
 };
 
 uint8_t crc(const uint8_t data[], const uint16_t len) {
@@ -101,85 +89,16 @@ uint8_t crc(const uint8_t data[], const uint16_t len) {
   return crc;
 }
 
-void HeltecBalancerBle::dump_config() {  // NOLINT(google-readability-function-size,readability-function-size)
+void HeltecBalancerBle::dump_config() {
   ESP_LOGCONFIG(TAG, "HeltecBalancerBle");
   LOG_BINARY_SENSOR("", "Balancing", this->balancing_binary_sensor_);
   LOG_BINARY_SENSOR("", "Online Status", this->online_status_binary_sensor_);
   LOG_SENSOR("", "Minimum Cell Voltage", this->min_cell_voltage_sensor_);
   LOG_SENSOR("", "Maximum Cell Voltage", this->max_cell_voltage_sensor_);
-  LOG_SENSOR("", "Minimum Voltage Cell", this->min_voltage_cell_sensor_);
-  LOG_SENSOR("", "Maximum Voltage Cell", this->max_voltage_cell_sensor_);
   LOG_SENSOR("", "Delta Cell Voltage", this->delta_cell_voltage_sensor_);
   LOG_SENSOR("", "Average Cell Voltage", this->average_cell_voltage_sensor_);
-  LOG_SENSOR("", "Cell Voltage 1", this->cells_[0].cell_voltage_sensor_);
-  LOG_SENSOR("", "Cell Voltage 2", this->cells_[1].cell_voltage_sensor_);
-  LOG_SENSOR("", "Cell Voltage 3", this->cells_[2].cell_voltage_sensor_);
-  LOG_SENSOR("", "Cell Voltage 4", this->cells_[3].cell_voltage_sensor_);
-  LOG_SENSOR("", "Cell Voltage 5", this->cells_[4].cell_voltage_sensor_);
-  LOG_SENSOR("", "Cell Voltage 6", this->cells_[5].cell_voltage_sensor_);
-  LOG_SENSOR("", "Cell Voltage 7", this->cells_[6].cell_voltage_sensor_);
-  LOG_SENSOR("", "Cell Voltage 8", this->cells_[7].cell_voltage_sensor_);
-  LOG_SENSOR("", "Cell Voltage 9", this->cells_[8].cell_voltage_sensor_);
-  LOG_SENSOR("", "Cell Voltage 10", this->cells_[9].cell_voltage_sensor_);
-  LOG_SENSOR("", "Cell Voltage 11", this->cells_[10].cell_voltage_sensor_);
-  LOG_SENSOR("", "Cell Voltage 12", this->cells_[11].cell_voltage_sensor_);
-  LOG_SENSOR("", "Cell Voltage 13", this->cells_[12].cell_voltage_sensor_);
-  LOG_SENSOR("", "Cell Voltage 14", this->cells_[13].cell_voltage_sensor_);
-  LOG_SENSOR("", "Cell Voltage 15", this->cells_[14].cell_voltage_sensor_);
-  LOG_SENSOR("", "Cell Voltage 16", this->cells_[15].cell_voltage_sensor_);
-  LOG_SENSOR("", "Cell Voltage 17", this->cells_[16].cell_voltage_sensor_);
-  LOG_SENSOR("", "Cell Voltage 18", this->cells_[17].cell_voltage_sensor_);
-  LOG_SENSOR("", "Cell Voltage 19", this->cells_[18].cell_voltage_sensor_);
-  LOG_SENSOR("", "Cell Voltage 20", this->cells_[19].cell_voltage_sensor_);
-  LOG_SENSOR("", "Cell Voltage 21", this->cells_[20].cell_voltage_sensor_);
-  LOG_SENSOR("", "Cell Voltage 22", this->cells_[21].cell_voltage_sensor_);
-  LOG_SENSOR("", "Cell Voltage 23", this->cells_[22].cell_voltage_sensor_);
-  LOG_SENSOR("", "Cell Voltage 24", this->cells_[23].cell_voltage_sensor_);
-  LOG_SENSOR("", "Cell Resistance 1", this->cells_[0].cell_resistance_sensor_);
-  LOG_SENSOR("", "Cell Resistance 2", this->cells_[1].cell_resistance_sensor_);
-  LOG_SENSOR("", "Cell Resistance 3", this->cells_[2].cell_resistance_sensor_);
-  LOG_SENSOR("", "Cell Resistance 4", this->cells_[3].cell_resistance_sensor_);
-  LOG_SENSOR("", "Cell Resistance 5", this->cells_[4].cell_resistance_sensor_);
-  LOG_SENSOR("", "Cell Resistance 6", this->cells_[5].cell_resistance_sensor_);
-  LOG_SENSOR("", "Cell Resistance 7", this->cells_[6].cell_resistance_sensor_);
-  LOG_SENSOR("", "Cell Resistance 8", this->cells_[7].cell_resistance_sensor_);
-  LOG_SENSOR("", "Cell Resistance 9", this->cells_[8].cell_resistance_sensor_);
-  LOG_SENSOR("", "Cell Resistance 10", this->cells_[9].cell_resistance_sensor_);
-  LOG_SENSOR("", "Cell Resistance 11", this->cells_[10].cell_resistance_sensor_);
-  LOG_SENSOR("", "Cell Resistance 12", this->cells_[11].cell_resistance_sensor_);
-  LOG_SENSOR("", "Cell Resistance 13", this->cells_[12].cell_resistance_sensor_);
-  LOG_SENSOR("", "Cell Resistance 14", this->cells_[13].cell_resistance_sensor_);
-  LOG_SENSOR("", "Cell Resistance 15", this->cells_[14].cell_resistance_sensor_);
-  LOG_SENSOR("", "Cell Resistance 16", this->cells_[15].cell_resistance_sensor_);
-  LOG_SENSOR("", "Cell Resistance 17", this->cells_[16].cell_resistance_sensor_);
-  LOG_SENSOR("", "Cell Resistance 18", this->cells_[17].cell_resistance_sensor_);
-  LOG_SENSOR("", "Cell Resistance 19", this->cells_[18].cell_resistance_sensor_);
-  LOG_SENSOR("", "Cell Resistance 20", this->cells_[19].cell_resistance_sensor_);
-  LOG_SENSOR("", "Cell Resistance 21", this->cells_[20].cell_resistance_sensor_);
-  LOG_SENSOR("", "Cell Resistance 22", this->cells_[21].cell_resistance_sensor_);
-  LOG_SENSOR("", "Cell Resistance 23", this->cells_[22].cell_resistance_sensor_);
-  LOG_SENSOR("", "Cell Resistance 24", this->cells_[23].cell_resistance_sensor_);
   LOG_SENSOR("", "Total Voltage", this->total_voltage_sensor_);
-  LOG_SENSOR("", "Temperature Sensor 1", this->temperature_sensor_1_sensor_);
-  LOG_SENSOR("", "Temperature Sensor 2", this->temperature_sensor_2_sensor_);
-  LOG_SENSOR("", "Total Runtime", this->total_runtime_sensor_);
-  LOG_SENSOR("", "Balancing Current", this->balancing_current_sensor_);
-  LOG_SENSOR("", "Errors Bitmask", this->errors_bitmask_sensor_);
-  LOG_SENSOR("", "Cell Detection Failed Bitmask", this->cell_detection_failed_bitmask_sensor_);
-  LOG_SENSOR("", "Cell Overvoltage Bitmask", this->cell_overvoltage_bitmask_sensor_);
-  LOG_SENSOR("", "Cell Undervoltage Bitmask", this->cell_undervoltage_bitmask_sensor_);
-  LOG_SENSOR("", "Cell Polarity Error Bitmask", this->cell_polarity_error_bitmask_sensor_);
-  LOG_SENSOR("", "Cell Excessive Line Resistance Bitmask", this->cell_excessive_line_resistance_bitmask_sensor_);
-
-  LOG_BINARY_SENSOR("", "Error System Overheating", this->error_system_overheating_binary_sensor_);
-  LOG_BINARY_SENSOR("", "Error Charging", this->error_charging_binary_sensor_);
-  LOG_BINARY_SENSOR("", "Error Discharging", this->error_discharging_binary_sensor_);
-
-  LOG_TEXT_SENSOR("", "Errors", this->errors_text_sensor_);
   LOG_TEXT_SENSOR("", "Operation Status", this->operation_status_text_sensor_);
-  LOG_TEXT_SENSOR("", "Total Runtime Formatted", this->total_runtime_formatted_text_sensor_);
-  LOG_TEXT_SENSOR("", "Buzzer Mode", this->buzzer_mode_text_sensor_);
-  LOG_TEXT_SENSOR("", "Battery Type", this->battery_type_text_sensor_);
 }
 
 void HeltecBalancerBle::gattc_event_handler(esp_gattc_cb_event_t event, esp_gatt_if_t gattc_if,
@@ -191,8 +110,10 @@ void HeltecBalancerBle::gattc_event_handler(esp_gattc_cb_event_t event, esp_gatt
     case ESP_GATTC_DISCONNECT_EVT: {
       ESP_LOGI(TAG, "Disconnect event - cleaning up");
       
-      // CRITICAL: Unregister notifications BEFORE clearing state
+      // CRITICAL: Save handle before clearing state
       uint16_t handle_to_unregister = this->char_handle_;
+      
+      // CRITICAL: Unregister notifications BEFORE clearing state
       if (handle_to_unregister != 0) {
         auto status = esp_ble_gattc_unregister_for_notify(this->parent()->get_gattc_if(),
                                                           this->parent()->get_remote_bda(), handle_to_unregister);
@@ -408,9 +329,7 @@ void HeltecBalancerBle::decode_cell_info_(const std::vector<uint8_t> &data) {
   uint8_t raw_operation_status = data[216];
   this->publish_state_(this->balancing_binary_sensor_, (raw_operation_status == 0x05));
   if (raw_operation_status < OPERATION_STATUS_SIZE) {
-    char buffer[60];
-    strcpy_P(buffer, (PGM_P)pgm_read_ptr(&OPERATION_STATUS[raw_operation_status]));
-    this->publish_state_(this->operation_status_text_sensor_, std::string(buffer));
+    this->publish_state_(this->operation_status_text_sensor_, OPERATION_STATUS[raw_operation_status]);
   } else {
     this->publish_state_(this->operation_status_text_sensor_, "Unknown");
   }
@@ -454,18 +373,14 @@ void HeltecBalancerBle::decode_settings_(const std::vector<uint8_t> &data) {
 
   uint8_t raw_buzzer_mode = data[22];
   if (raw_buzzer_mode < BUZZER_MODES_SIZE) {
-    char buffer[20];
-    strcpy_P(buffer, (PGM_P)pgm_read_ptr(&BUZZER_MODES[raw_buzzer_mode]));
-    this->publish_state_(this->buzzer_mode_text_sensor_, std::string(buffer));
+    this->publish_state_(this->buzzer_mode_text_sensor_, BUZZER_MODES[raw_buzzer_mode]);
   } else {
     this->publish_state_(this->buzzer_mode_text_sensor_, "Unknown");
   }
 
   uint8_t raw_battery_type = data[23];
   if (raw_battery_type < BATTERY_TYPES_SIZE) {
-    char buffer[20];
-    strcpy_P(buffer, (PGM_P)pgm_read_ptr(&BATTERY_TYPES[raw_battery_type]));
-    this->publish_state_(this->battery_type_text_sensor_, std::string(buffer));
+    this->publish_state_(this->battery_type_text_sensor_, BATTERY_TYPES[raw_battery_type]);
   } else {
     this->publish_state_(this->battery_type_text_sensor_, "Unknown");
   }
@@ -612,7 +527,7 @@ void HeltecBalancerBle::publish_device_unavailable_() {
   this->publish_state_(cell_polarity_error_bitmask_sensor_, NAN);
   this->publish_state_(cell_excessive_line_resistance_bitmask_sensor_, NAN);
 
-  // BUG FIX: Also publish NAN for cell resistance sensors
+  // CRITICAL BUG FIX: Also publish NAN for cell resistance sensors
   for (auto &cell : this->cells_) {
     this->publish_state_(cell.cell_voltage_sensor_, NAN);
     this->publish_state_(cell.cell_resistance_sensor_, NAN);
@@ -622,35 +537,30 @@ void HeltecBalancerBle::publish_device_unavailable_() {
 void HeltecBalancerBle::publish_state_(binary_sensor::BinarySensor *binary_sensor, const bool &state) {
   if (binary_sensor == nullptr)
     return;
-
   binary_sensor->publish_state(state);
 }
 
 void HeltecBalancerBle::publish_state_(number::Number *number, float value) {
   if (number == nullptr)
     return;
-
   number->publish_state(value);
 }
 
 void HeltecBalancerBle::publish_state_(sensor::Sensor *sensor, float value) {
   if (sensor == nullptr)
     return;
-
   sensor->publish_state(value);
 }
 
 void HeltecBalancerBle::publish_state_(switch_::Switch *obj, const bool &state) {
   if (obj == nullptr)
     return;
-
   obj->publish_state(state);
 }
 
 void HeltecBalancerBle::publish_state_(text_sensor::TextSensor *text_sensor, const std::string &state) {
   if (text_sensor == nullptr)
     return;
-
   text_sensor->publish_state(state);
 }
 
@@ -659,9 +569,7 @@ std::string HeltecBalancerBle::error_bits_to_string_(uint16_t bitmask) {
   if (bitmask) {
     for (uint8_t i = 0; i < CELL_ERRORS_SIZE; i++) {
       if (bitmask & (1 << i)) {
-        char buffer[40];
-        strcpy_P(buffer, (PGM_P)pgm_read_ptr(&CELL_ERRORS[i]));
-        errors_list.append(buffer);
+        errors_list.append(CELL_ERRORS[i]);
         errors_list.append(";");
       }
     }
