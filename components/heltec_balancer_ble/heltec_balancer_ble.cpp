@@ -305,7 +305,7 @@ void HeltecBalancerBle::assemble(const uint8_t *data, uint16_t length) {
       return;
     }
 
-    // CRITICAL FIX: Pass buffer directly instead of copying to avoid memory pressure
+    // Pass buffer directly instead of copying
     std::vector<uint8_t> data(this->frame_buffer_.begin(), this->frame_buffer_.end());
 
     this->decode_(data);
