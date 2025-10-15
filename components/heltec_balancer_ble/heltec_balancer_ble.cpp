@@ -341,8 +341,8 @@ void HeltecBalancerBle::decode_cell_info_(const std::vector<uint8_t> &data) {
   uint8_t raw_operation_status = data[216];
   this->publish_state_(this->balancing_binary_sensor_, (raw_operation_status == 0x05));
   if (raw_operation_status < OPERATION_STATUS_SIZE) {
-    const char* str_ptr = (const char*)pgm_read_ptr(&OPERATION_STATUS[raw_operation_status]);
-    this->publish_state_(this->operation_status_text_sensor_, str_ptr);
+    // On ESP32/ESP-IDF, PROGMEM strings can be read directly via flash cache
+    this->publish_state_(this->operation_status_text_sensor_, OPERATION_STATUS[raw_operation_status]);
   } else {
     this->publish_state_(this->operation_status_text_sensor_, "Unknown");
   }
@@ -386,16 +386,14 @@ void HeltecBalancerBle::decode_settings_(const std::vector<uint8_t> &data) {
 
   uint8_t raw_buzzer_mode = data[22];
   if (raw_buzzer_mode < BUZZER_MODES_SIZE) {
-    const char* str_ptr = (const char*)pgm_read_ptr(&BUZZER_MODES[raw_buzzer_mode]);
-    this->publish_state_(this->buzzer_mode_text_sensor_, str_ptr);
+    this->publish_state_(this->buzzer_mode_text_sensor_, BUZZER_MODES[raw_buzzer_mode]);
   } else {
     this->publish_state_(this->buzzer_mode_text_sensor_, "Unknown");
   }
 
   uint8_t raw_battery_type = data[23];
   if (raw_battery_type < BATTERY_TYPES_SIZE) {
-    const char* str_ptr = (const char*)pgm_read_ptr(&BATTERY_TYPES[raw_battery_type]);
-    this->publish_state_(this->battery_type_text_sensor_, str_ptr);
+    this->publish_state_(this->battery_type_text_sensor_, BATTERY_TYPES[raw_battery_type]);
   } else {
     this->publish_state_(this->battery_type_text_sensor_, "Unknown");
   }
@@ -584,8 +582,8 @@ std::string HeltecBalancerBle::error_bits_to_string_(uint16_t bitmask) {
   if (bitmask) {
     for (uint8_t i = 0; i < CELL_ERRORS_SIZE; i++) {
       if (bitmask & (1 << i)) {
-        const char* str_ptr = (const char*)pgm_read_ptr(&CELL_ERRORS[i]);
-        errors_list.append(str_ptr);
+        // On ESP32/ESP-IDF, PROGMEM strings can be read directly via flash cache
+        errors_list.append(CELL_ERRORS[i]);
         errors_list.append(";");
       }
     }
