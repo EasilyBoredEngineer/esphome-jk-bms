@@ -38,47 +38,59 @@ static constexpr uint8_t BUZZER_MODES_SIZE = 4;
 static constexpr uint8_t BATTERY_TYPES_SIZE = 5;
 static constexpr uint8_t CELL_ERRORS_SIZE = 8;
 
-// Simple string arrays - no PROGMEM
-static const char *const OPERATION_STATUS[] = {
-    "Unknown",
-    "Wrong cell count",
-    "AcqLine Res test",
-    "AcqLine Res exceed",
-    "Systest Completed",
-    "Balancing",
-    "Balancing finished",
-    "Low voltage",
-    "System Overtemp",
-    "Host fails",
-    "Low battery voltage - balancing stopped",
-    "Temperature too high - balancing stopped",
-    "Self-test completed"
+// ESP-IDF compatible PROGMEM - stores in flash
+static const char OP_STATUS_0[] PROGMEM = "Unknown";
+static const char OP_STATUS_1[] PROGMEM = "Wrong cell count";
+static const char OP_STATUS_2[] PROGMEM = "AcqLine Res test";
+static const char OP_STATUS_3[] PROGMEM = "AcqLine Res exceed";
+static const char OP_STATUS_4[] PROGMEM = "Systest Completed";
+static const char OP_STATUS_5[] PROGMEM = "Balancing";
+static const char OP_STATUS_6[] PROGMEM = "Balancing finished";
+static const char OP_STATUS_7[] PROGMEM = "Low voltage";
+static const char OP_STATUS_8[] PROGMEM = "System Overtemp";
+static const char OP_STATUS_9[] PROGMEM = "Host fails";
+static const char OP_STATUS_10[] PROGMEM = "Low battery voltage - balancing stopped";
+static const char OP_STATUS_11[] PROGMEM = "Temperature too high - balancing stopped";
+static const char OP_STATUS_12[] PROGMEM = "Self-test completed";
+
+static const char *const OPERATION_STATUS[] PROGMEM = {
+    OP_STATUS_0, OP_STATUS_1, OP_STATUS_2, OP_STATUS_3,
+    OP_STATUS_4, OP_STATUS_5, OP_STATUS_6, OP_STATUS_7,
+    OP_STATUS_8, OP_STATUS_9, OP_STATUS_10, OP_STATUS_11,
+    OP_STATUS_12
 };
 
-static const char *const BUZZER_MODES[] = {
-    "Unknown",
-    "Off",
-    "Beep once",
-    "Beep regular"
+static const char BUZZER_0[] PROGMEM = "Unknown";
+static const char BUZZER_1[] PROGMEM = "Off";
+static const char BUZZER_2[] PROGMEM = "Beep once";
+static const char BUZZER_3[] PROGMEM = "Beep regular";
+
+static const char *const BUZZER_MODES[] PROGMEM = {
+    BUZZER_0, BUZZER_1, BUZZER_2, BUZZER_3
 };
 
-static const char *const BATTERY_TYPES[] = {
-    "Unknown",
-    "NCM",
-    "LFP",
-    "LTO",
-    "PbAc"
+static const char BATTERY_0[] PROGMEM = "Unknown";
+static const char BATTERY_1[] PROGMEM = "NCM";
+static const char BATTERY_2[] PROGMEM = "LFP";
+static const char BATTERY_3[] PROGMEM = "LTO";
+static const char BATTERY_4[] PROGMEM = "PbAc";
+
+static const char *const BATTERY_TYPES[] PROGMEM = {
+    BATTERY_0, BATTERY_1, BATTERY_2, BATTERY_3, BATTERY_4
 };
 
-static const char *const CELL_ERRORS[] = {
-    "Battery detection failed",
-    "Overvoltage",
-    "Undervoltage",
-    "Polarity error",
-    "Excessive line resistance",
-    "System overheating",
-    "Charging fault",
-    "Discharge fault"
+static const char ERROR_0[] PROGMEM = "Battery detection failed";
+static const char ERROR_1[] PROGMEM = "Overvoltage";
+static const char ERROR_2[] PROGMEM = "Undervoltage";
+static const char ERROR_3[] PROGMEM = "Polarity error";
+static const char ERROR_4[] PROGMEM = "Excessive line resistance";
+static const char ERROR_5[] PROGMEM = "System overheating";
+static const char ERROR_6[] PROGMEM = "Charging fault";
+static const char ERROR_7[] PROGMEM = "Discharge fault";
+
+static const char *const CELL_ERRORS[] PROGMEM = {
+    ERROR_0, ERROR_1, ERROR_2, ERROR_3,
+    ERROR_4, ERROR_5, ERROR_6, ERROR_7
 };
 
 uint8_t crc(const uint8_t data[], const uint16_t len) {
@@ -329,7 +341,8 @@ void HeltecBalancerBle::decode_cell_info_(const std::vector<uint8_t> &data) {
   uint8_t raw_operation_status = data[216];
   this->publish_state_(this->balancing_binary_sensor_, (raw_operation_status == 0x05));
   if (raw_operation_status < OPERATION_STATUS_SIZE) {
-    this->publish_state_(this->operation_status_text_sensor_, OPERATION_STATUS[raw_operation_status]);
+    const char* str_ptr = (const char*)pgm_read_ptr(&OPERATION_STATUS[raw_operation_status]);
+    this->publish_state_(this->operation_status_text_sensor_, str_ptr);
   } else {
     this->publish_state_(this->operation_status_text_sensor_, "Unknown");
   }
@@ -373,14 +386,16 @@ void HeltecBalancerBle::decode_settings_(const std::vector<uint8_t> &data) {
 
   uint8_t raw_buzzer_mode = data[22];
   if (raw_buzzer_mode < BUZZER_MODES_SIZE) {
-    this->publish_state_(this->buzzer_mode_text_sensor_, BUZZER_MODES[raw_buzzer_mode]);
+    const char* str_ptr = (const char*)pgm_read_ptr(&BUZZER_MODES[raw_buzzer_mode]);
+    this->publish_state_(this->buzzer_mode_text_sensor_, str_ptr);
   } else {
     this->publish_state_(this->buzzer_mode_text_sensor_, "Unknown");
   }
 
   uint8_t raw_battery_type = data[23];
   if (raw_battery_type < BATTERY_TYPES_SIZE) {
-    this->publish_state_(this->battery_type_text_sensor_, BATTERY_TYPES[raw_battery_type]);
+    const char* str_ptr = (const char*)pgm_read_ptr(&BATTERY_TYPES[raw_battery_type]);
+    this->publish_state_(this->battery_type_text_sensor_, str_ptr);
   } else {
     this->publish_state_(this->battery_type_text_sensor_, "Unknown");
   }
@@ -569,7 +584,8 @@ std::string HeltecBalancerBle::error_bits_to_string_(uint16_t bitmask) {
   if (bitmask) {
     for (uint8_t i = 0; i < CELL_ERRORS_SIZE; i++) {
       if (bitmask & (1 << i)) {
-        errors_list.append(CELL_ERRORS[i]);
+        const char* str_ptr = (const char*)pgm_read_ptr(&CELL_ERRORS[i]);
+        errors_list.append(str_ptr);
         errors_list.append(";");
       }
     }
